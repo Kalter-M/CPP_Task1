@@ -118,7 +118,7 @@ bool FillTextFileGenerate(std::string FileName, int amount, int diapason)
 
 	std::vector<int> v(amount);
 
-	//std::generate(v.begin(), v.end(), RandomNumber(diapason));
+	std::generate(v.begin(), v.end(), [diapason]() -> int {return -diapason + (rand() % (2 * diapason + 1));});
 
 	for (int elem : v)
 	{
