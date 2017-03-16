@@ -50,13 +50,14 @@ bool CorrectFileName(std::string s)
 //поиск максимального числа в деке
 int MaxNumber(std::deque<int> dec)
 {
+	if (dec.size() == 0) throw std::string("Дек пустой!");
 	int max = dec[0];
 	
 	for (std::deque<int>::iterator it = dec.begin(); it != dec.end(); it++)
 	{
 		if (*it > max) max = *it;
 	}
-
+	if (max == 0) throw std::string("Деление на ноль невозможно");
 	return max;
 }
 
@@ -96,6 +97,7 @@ bool FillTextFileCycle(std::string FileName,int amount, int diapason)
 	}
 
 	file.close();
+	return true;
 }
 
 //заполнение файла std::generate
@@ -125,6 +127,7 @@ bool FillTextFileGenerate(std::string FileName, int amount, int diapason)
 		file << elem << " ";
 	}
 	file.close();
+	return true;
 }
 
 std::deque<int> ReadFromFile(std::string FileName)
@@ -157,14 +160,22 @@ std::deque<int> ReadFromFile(std::string FileName)
 
 std::deque<double> Modify(std::deque<int> inputDec)
 {
-	int max = MaxNumber(inputDec);
-
+	int max;
 	std::deque<double> outputDec;
-
-	for (int elem : inputDec)
+	try
 	{
-		outputDec.push_back(TransformNumber<int>()(elem, max));
+		max = MaxNumber(inputDec);
+
+		for (int elem : inputDec)
+		{
+			outputDec.push_back(TransformNumber<int>()(elem, max));
+		}
 	}
+	catch (std::string err)
+	{
+		std::cout << err << std::endl;
+	}
+
 	return outputDec;
 }
 
@@ -188,13 +199,21 @@ std::deque<double> Modify(std::deque<int>::iterator begin, std::deque<int>::iter
 
 std::deque<double> ModifyTransform(std::deque<int> inputDec)
 {
-	int max = MaxNumber(inputDec);
-
+	int max;
 	std::deque<double> outputDec;
+	try
+	{
+		max = MaxNumber(inputDec);
 
-	outputDec.resize(inputDec.size());
+		outputDec.resize(inputDec.size());
 
-	std::transform(inputDec.begin(), inputDec.end(), outputDec.begin(), [max](int num) -> double {return ((double)num / (double)max * 2); });
+		// Transform number, possibly 
+		std::transform(inputDec.begin(), inputDec.end(), outputDec.begin(), [max](int num) -> double {return TransformNumber<int>()(num, max);});
+	}
+	catch (std::string err)
+	{
+		std::cout << err << std::endl;
+	}
 
 	return outputDec;
 }
@@ -202,16 +221,26 @@ std::deque<double> ModifyTransform(std::deque<int> inputDec)
 
 std::deque<double> ModifyForEach(std::deque<int> inputDec)
 {
-	int max = MaxNumber(inputDec);
-
+	int max;
 	std::deque<double> outputDec;
 
-	for (std::deque<int>::iterator it = inputDec.begin(); it != inputDec.end(); it++)
+	try
 	{
-		outputDec.push_back((double)*it);
-	}
+		max = MaxNumber(inputDec);
 
-	std::for_each(outputDec.begin(), outputDec.end(), [max](double &num) -> void { num = num / (double)max * 2; });
+		for (std::deque<int>::iterator it = inputDec.begin(); it != inputDec.end(); it++)
+		{
+			outputDec.push_back((double)*it);
+		}
+
+		// TransformNumber
+		std::for_each(outputDec.begin(), outputDec.end(), [max](double &num) -> void {num = TransformNumber<double>()(num, max);});
+		
+	}
+	catch (std::string err)
+	{
+		std::cout << err << std::endl;
+	}
 
 	return outputDec;
 }
@@ -234,7 +263,17 @@ double AverageDeque(std::deque<int> inputDec)
 
 //шаблон печати
 template <typename T>
-bool PrintResult(std::string FileName, std::deque<T> inputDec)
+void PrintResult(std::deque<T> inputDec)
+{
+	for ( T elem : inputDec)
+	{
+		std::cout << elem << " ";
+	}
+	std::cout << std::endl;
+}
+
+template <typename T>
+bool SaveToFile(std::string FileName, std::deque<T> inputDec)
 {
 	if (!CorrectFileName(FileName))
 	{
@@ -251,14 +290,10 @@ bool PrintResult(std::string FileName, std::deque<T> inputDec)
 		return false;
 	}
 
-	for ( T elem : inputDec)
-	{
-		file << elem << " ";
-		std::cout << elem << " ";
-	}
-	std::cout << std::endl;
+	PrintResult(inputDec);
 
 	file.close();
+	return true;
 }
 
 int ShowMenu()
@@ -307,27 +342,33 @@ int main()
 			std::cout << "Введите имя файла\n";
 			std::cin >> filename;
 			Deq = ReadFromFile(filename);
+			PrintResult(Deq);
 			break;
 		case 3:
 			OutDeq = Modify(Deq);
+			PrintResult(OutDeq);
 			break;
 		case 4:
 			OutDeq = Modify(Deq.begin(), Deq.end());
+			PrintResult(OutDeq);
 			break;
 		case 5:
 			OutDeq = ModifyTransform(Deq);
+			PrintResult(OutDeq);
 			break;
 		case 6:
 			OutDeq = ModifyForEach(Deq);
+			PrintResult(OutDeq);
 			break;
 		case 7:
+			PrintResult(Deq);
 			std::cout << "Сумма:" << SumDeque(Deq) << std::endl;
 			std::cout << "Среднее арифметическое:" << AverageDeque(Deq) << std::endl;
 			break;
 		case 8:
 			std::cout << "Введите имя файла\n";
 			std::cin >> filename;
-			PrintResult(filename, OutDeq);
+			SaveToFile(filename, OutDeq);
 			break;
 		case 9:
 			exit = true;
