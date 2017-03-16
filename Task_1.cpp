@@ -57,7 +57,7 @@ int MaxNumber(std::deque<int> dec)
 	{
 		if (*it > max) max = *it;
 	}
-	if (max == 0) throw std::string("Деление на ноль невозможно");
+	
 	return max;
 }
 
@@ -165,7 +165,7 @@ std::deque<double> Modify(std::deque<int> inputDec)
 	try
 	{
 		max = MaxNumber(inputDec);
-
+		if (max == 0) throw std::string("Деление на ноль невозможно");
 		for (int elem : inputDec)
 		{
 			outputDec.push_back(TransformNumber<int>()(elem, max));
@@ -204,7 +204,7 @@ std::deque<double> ModifyTransform(std::deque<int> inputDec)
 	try
 	{
 		max = MaxNumber(inputDec);
-
+		if (max == 0) throw std::string("Деление на ноль невозможно");
 		outputDec.resize(inputDec.size());
 
 		// Transform number, possibly 
@@ -227,7 +227,7 @@ std::deque<double> ModifyForEach(std::deque<int> inputDec)
 	try
 	{
 		max = MaxNumber(inputDec);
-
+		if (max == 0) throw std::string("Деление на ноль невозможно");
 		for (std::deque<int>::iterator it = inputDec.begin(); it != inputDec.end(); it++)
 		{
 			outputDec.push_back((double)*it);
