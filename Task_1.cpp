@@ -19,7 +19,7 @@ template <typename T>
 struct TransformNumber
 	: public std::binary_function<double, T, T>
 {
-	double operator()(int input, int max)
+	double operator()(T input, int max)
 	{
 		return (double)input / (double)max * 2;
 	}
@@ -61,20 +61,14 @@ int MaxNumber(std::deque<int> dec)
 	return max;
 }
 
-//функция преобразования
-//float TransformNumber(int input, int max)
-//{
-//	return input / max * 2;
-//}
-
 //случайное число из диапазона
 int RandomNumber(int diapason)
 {
 	return -diapason + (rand() % (2 * diapason + 1));
 }
 
-//заполнение файла циклом
-bool FillTextFileCycle(std::string FileName,int amount, int diapason)
+//функция проверки доступности файла
+bool CheckFile(std::string FileName)
 {
 	if (!CorrectFileName(FileName))
 	{
@@ -83,44 +77,44 @@ bool FillTextFileCycle(std::string FileName,int amount, int diapason)
 
 	}
 
-	std::ofstream file(FileName);
+	std::ifstream file(FileName);
 
 	if (!file.is_open())
 	{
 		std::cout << "Невозможно открыть файл" << std::endl;
 		return false;
 	}
-		
+	file.close();
+	return true;
+}
+
+//заполнение файла циклом
+bool FillTextFileCycle(std::string FileName,int amount, int diapason)
+{
+	if (!CheckFile(FileName)) return false;
+
+	std::ofstream file(FileName);
+
 	for (int i = 0; i < amount; i++)
 	{
 		file << RandomNumber(diapason) << " ";
 	}
 
 	file.close();
+
 	return true;
 }
 
 //заполнение файла std::generate
 bool FillTextFileGenerate(std::string FileName, int amount, int diapason)
 {
-	if (!CorrectFileName(FileName))
-	{
-		std::cout << "Некорректное имя файла(использование символов / \\ : * ? \" < > | запрещено)" << std::endl;
-		return false;
-
-	}
+	if (!CheckFile(FileName)) return false;
 
 	std::ofstream file(FileName);
 
-	if (!file.is_open())
-	{
-		std::cout << "Невозможно открыть файл" << std::endl;
-		return false;
-	}
-
 	std::vector<int> v(amount);
 
-	std::generate(v.begin(), v.end(), [diapason]() -> int {return -diapason + (rand() % (2 * diapason + 1));});
+	std::generate(v.begin(), v.end(), [diapason]() -> int {return RandomNumber(diapason);});
 
 	for (int elem : v)
 	{
@@ -133,20 +127,10 @@ bool FillTextFileGenerate(std::string FileName, int amount, int diapason)
 std::deque<int> ReadFromFile(std::string FileName)
 {
 	std::deque<int> dec;
-	if (!CorrectFileName(FileName))
-	{
-		std::cout << "Некорректное имя файла(использование символов / \\ : * ? \" < > | запрещено)" << std::endl;
-		return dec;
 
-	}
+	if (!CheckFile(FileName)) return dec;
 
 	std::ifstream file(FileName);
-
-	if (!file.is_open())
-	{
-		std::cout << "Невозможно открыть файл" << std::endl;
-		return dec;
-	}
 
 	int buffer;
 
@@ -165,6 +149,7 @@ std::deque<double> Modify(std::deque<int> inputDec)
 	try
 	{
 		max = MaxNumber(inputDec);
+
 		if (max == 0) throw std::string("Деление на ноль невозможно");
 		for (int elem : inputDec)
 		{
@@ -182,20 +167,41 @@ std::deque<double> Modify(std::deque<int> inputDec)
 std::deque<double> Modify(std::deque<int>::iterator begin, std::deque<int>::iterator end)
 {
 	int max = *begin;
-
-	for (std::deque<int>::iterator it = begin; it != end ; it++)
-	{
-		if (*it > max) max = *it;
-	}
-
 	std::deque<double> outputDec;
 
-	for (std::deque<int>::iterator it = begin; it != end; it++)
+	try
 	{
-		outputDec.push_back(TransformNumber<int>()(*it, max));
+		for (std::deque<int>::iterator it = begin; it != end; it++)
+		{
+			if (*it > max) max = *it;
+		}
+
+
+		if (max == 0) throw std::string("Деление на ноль невозможно");
+
+		
+
+		for (std::deque<int>::iterator it = begin; it != end; it++)
+		{
+			outputDec.push_back(TransformNumber<int>()(*it, max));
+		}
 	}
+	catch (std::string err)
+	{
+		std::cout << err << std::endl;
+	}
+
 	return outputDec;
 }
+
+//структура для модификации элементов через transform
+struct functorTransform {
+	functorTransform(int max) : max(max) {}
+	double operator()(int x1) { return TransformNumber<int>()(x1, max); }
+
+private:
+	int max;
+};
 
 std::deque<double> ModifyTransform(std::deque<int> inputDec)
 {
@@ -208,7 +214,7 @@ std::deque<double> ModifyTransform(std::deque<int> inputDec)
 		outputDec.resize(inputDec.size());
 
 		// Transform number, possibly 
-		std::transform(inputDec.begin(), inputDec.end(), outputDec.begin(), [max](int num) -> double {return TransformNumber<int>()(num, max);});
+		std::transform(inputDec.begin(), inputDec.end(), outputDec.begin(), functorTransform(max));
 	}
 	catch (std::string err)
 	{
@@ -218,6 +224,14 @@ std::deque<double> ModifyTransform(std::deque<int> inputDec)
 	return outputDec;
 }
 
+//структура для модификации элементов через forEach
+struct functorForEach {
+	functorForEach(int max) : max(max) {}
+	void operator()(double &x1) { x1 = TransformNumber<double>()(x1, max); }
+
+private:
+	int max;
+};
 
 std::deque<double> ModifyForEach(std::deque<int> inputDec)
 {
@@ -233,8 +247,7 @@ std::deque<double> ModifyForEach(std::deque<int> inputDec)
 			outputDec.push_back((double)*it);
 		}
 
-		// TransformNumber
-		std::for_each(outputDec.begin(), outputDec.end(), [max](double &num) -> void {num = TransformNumber<double>()(num, max);});
+		std::for_each(outputDec.begin(), outputDec.end(), functorForEach(max));
 		
 	}
 	catch (std::string err)
@@ -275,24 +288,14 @@ void PrintResult(std::deque<T> inputDec)
 template <typename T>
 bool SaveToFile(std::string FileName, std::deque<T> inputDec)
 {
-	if (!CorrectFileName(FileName))
-	{
-		std::cout << "Некорректное имя файла(использование символов / \\ : * ? \" < > | запрещено)" << std::endl;
-		return false;
-
-	}
-
+	if (!CheckFile(FileName)) return false;
+	
 	std::ofstream file(FileName);
-
-	if (!file.is_open())
-	{
-		std::cout << "Невозможно открыть файл" << std::endl;
-		return false;
-	}
 
 	PrintResult(inputDec);
 
 	file.close();
+
 	return true;
 }
 
@@ -321,7 +324,6 @@ int main()
 	bool exit = false;
 	int choice;
 	std::deque<int> Deq;
-
 	std::deque<double> OutDeq;
 	std::string filename;
 	int x, y;
